@@ -1,0 +1,100 @@
+*
+  // outline: 1px solid red
+
+$colorLight: #40ed34
+
+html,body
+  margin: 0
+  color: #fff
+  background-color: #333
+
+body
+  padding-top: 20px
+
+h1,h2,h3,h4,h5,h6,p
+  margin: 0
+
+p:not(:last-child)
+  margin-bottom: 6px
+
+hr
+  margin: 20px 0
+
+h2
+  margin-bottom: 15px
+
+select
+  font-size: 20px
+  appearance: none
+  padding: 8px 15px
+  outline: none
+  background: transparent
+  color: #fff
+  border: 2px solid #fff
+
+.button,button
+  cursor: pointer
+  user-select: none
+  transition: opacity 0.3s
+  &:hover
+    opacity: 0.7
+  &:active
+    opacity: 1
+
+.group
+  display: flex
+  justify-content: center
+  align-items: center
+  &>h2
+    margin-bottom: 0
+    margin-right: 15px
+
+.color-light
+  color: $colorLight
+
+.wrapper
+  max-width: 900px
+  margin: 0 auto
+
+.city-container 
+  border: 3px solid #fff
+  display: inline-block
+  width: calc(100% / 3 - 20px)
+  margin-right: 20px
+  margin-bottom: 20px
+  &:nth-of-type(3n)
+    margin-right: 0
+  .title,.content
+    padding: 15px
+  .title
+    display: flex
+    justify-content: space-between
+    align-items: center
+    border-bottom: 1px solid #fff
+    i
+      font-size: 22px
+
+// 狀態對應表
+// '良好',
+// 'status-aqi2' '普通',
+// 'status-aqi3' '對敏感族群不健康',
+// 'status-aqi4' '對所有族群不健康',
+// 'status-aqi5' '非常不健康',
+// 'status-aqi6' '危害' 
+.status-aqi2,.status-aqi2 .title
+  border-color: #ffff00
+
+.status-aqi3,.status-aqi3 .title
+  border-color: #ff7e00
+
+.status-aqi4,.status-aqi4 .title
+  border-color: #ff0000
+
+.status-aqi5,.status-aqi5 .title
+  border-color: #8f3f97
+
+.status-aqi6,.status-aqi6 .title
+  border-color: #7e0023
+
+
+  

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+  <link rel="stylesheet" href="all.css">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.4.1/css/all.css" integrity="sha384-5sAR7xN1Nv6T6+dT2mhtzEpVJvfS3NScPQTrOxhwjIuvcA67KV2R5Jz6kr4abQsz" crossorigin="anonymous">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.5.17/vue.js"></script>
+</head>
+
+<body>
+  <div id="app">
+  </div>
+
+  
+  <script>
+    const API = 'http://opendata2.epa.gov.tw/AQI.json'
+
+    // const qualityList = [
+    //   '良好',
+    //   '普通',
+    //   '對敏感族群不健康',
+    //   '對所有族群不健康',
+    //   '非常不健康',
+    //   '危害',
+    // ]
+
+    const app = new Vue({
+      el: '#app',
+      components: {
+        // 下拉選單組件
+        Select: {
+          props: {
+            value: {
+              type: String
+            },
+            options: {
+              type: Array
+            }
+          },
+          template: `
+            <select class="button" v-model="selected">
+              <option disabled>--請選擇--</option>
+              <option v-for="item in options">{{item}}</option>
+            </select>
+          `,
+          computed: {
+            selected: {
+              get(){
+                return this.value
+              },
+              set(newValue){
+                this.$emit('input', newValue)
+              }
+            }
+          }
+        },
+        // 城鎮訊息組件
+        CityInfo: {
+          props: {
+            info: {
+              type: Object
+            },
+            following: {
+              type: Boolean,
+              default: false
+            }
+          },
+          computed: {
+            // 污染程度顏色class
+            statusClass(){
+              return {
+                'status-aqi2': this.info.Status === '普通',
+                'status-aqi3': this.info.Status === '對敏感族群不健康',
+                'status-aqi4': this.info.Status === '對所有族群不健康',
+                'status-aqi5': this.info.Status === '非常不健康',
+                'status-aqi6': this.info.Status === '危害' 
+              }
+            },
+            // 決定空心星星：far 實心星星：fas
+            followingClass(){
+              return {
+                far: !this.following,
+                fas: this.following
+              }
+            }
+          },
+          template: `
+            <div class="city-container" :class="statusClass">
+              <div class="title">
+                <h4>{{info.County}} - {{info.SiteName}}</h4>
+                <i 
+                  @click="switchFollowing"
+                  class="button color-light fa-star"
+                  :class="followingClass"
+                ></i>
+              </div>
+              <div class="content">
+                <p>AQI指數： {{info.AQI}}</p>
+                <p>PM2.5： {{info['PM2.5']}}</p>
+                <p>說明： {{info.Status}}</p>
+                <br>
+                <p>{{info.PublishTime}}</p>
+              </div>
+            </div>
+          `,
+          methods: {
+            switchFollowing(){
+              console.log('click component');
+              this.$emit('switchFollowing',this.info)
+            }
+          }
+        }
+      },
+      // root template
+      template: `
+        <div class="wrapper">
+          <div class="group">
+            <h2>請選擇城市：</h2>
+            <Select v-model="city" :options="countyList"/>
+          </div>
+          <hr>
+          <div v-if="followingData.length > 0">
+            <h2>關注城市</h2>
+            <CityInfo
+              v-for="item in followingData"
+              :key="item.SiteName"
+              :info="item"
+              :following="true"
+              @switchFollowing="removeFollowing"
+            />
+            <hr>
+          </div>
+          
+          <div>
+            <CityInfo
+              v-for="item in filterData"
+              :key="item.SiteName"
+              :info="item"
+              @switchFollowing="addFollowing"
+            />
+          </div>
+        </div>
+      `,
+      //root data
+      data: {
+        city: '全部縣市',
+        data: [],
+        followingData: JSON.parse(localStorage.getItem('followingData')) || []
+      },
+      computed: {
+        // 注入select的props生成選單
+        countyList(){
+          const countyList = [
+            ...this.data.reduce( (listSet, {County}) => listSet.add(County), new Set() )
+          ]
+          countyList.unshift('全部縣市')
+          return countyList
+        },
+        // 重點渲染參考
+        filterData(){
+          // 清單渲染邏輯：首先比對關注城市，原始資料中拔除關注城市的資料就是渲染結果
+          // 基於此邏輯，每次針對關注城市陣列做增減，就能達成畫面更新
+          if(this.city === '全部縣市'){
+            return this.data.filter( ({SiteName : originSiteName}) => {
+              // 關注陣列與原始陣列比對符合搭配not運算子
+              // 找不到 -> false -> not運算 -> true -> 通過過濾而渲染
+              return !this.followingData.find(
+                ({SiteName : followingSiteName}) => followingSiteName === originSiteName
+              )
+            })
+          }else{
+            // 這邊與上方概念相同只是多過濾一層County
+            return this.data.filter( ({County}) => this.city === County )
+              .filter( ({SiteName : originSiteName}) => {
+                return !this.followingData.find(
+                  ({SiteName : followingSiteName}) => followingSiteName === originSiteName
+                )
+              })
+          }
+        },
+        // qualityList(){
+        //   return qualityList
+        // }
+      },
+      methods: {
+        addFollowing(info){
+          this.followingData.push(info)
+        },
+        removeFollowing( {SiteName} ){
+          const index = this.followingData.findIndex(
+            ({SiteName : followingSiteName}) => followingSiteName === SiteName
+          )
+          this.followingData.splice(index, 1)
+        },
+      },
+      watch: {
+        // 偵聽關注陣列，每次改動就更新localStorage
+        followingData(){
+          localStorage.setItem('followingData', JSON.stringify(this.followingData))
+        }
+      },
+      mounted() {
+        fetch(API)
+          .then(data => data.json())
+          .then(data =>{ 
+            this.data = data
+            console.log(this.data);
+            // this.data.forEach(({County})=>console.log(County))
+          })
+          .catch(err => console.error(err))    
+      },
+    })
+    
+
+  </script>
+</body>
+</html>
+
